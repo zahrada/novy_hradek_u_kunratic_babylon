@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Zerotin</title>
+
+        <!-- Babylon.js -->
+        <script src="https://code.jquery.com/pep/0.4.2/pep.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://preview.babylonjs.com/ammo.js"></script>
+        <script src="https://preview.babylonjs.com/cannon.js"></script>
+        <script src="https://preview.babylonjs.com/Oimo.js"></script>
+        <script src="https://preview.babylonjs.com/libktx.js"></script>
+        <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+        <script src="https://preview.babylonjs.com/babylon.js"></script>
+        <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+        <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+        </style>
+    </head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+
+        var modelHistoryHrad;
+        var modelHistoryTeren;
+        var modelHistoryOtazniky;
+        var modelReal;
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true }); };
+        var createScene = function () {
+            var scene = new BABYLON.Scene(engine);
+        
+            //Adding a light
+            var light = new BABYLON.PointLight("Omni", new BABYLON.Vector3(200, 200, 100), scene);
+
+            //Light direction is directly down
+	        var light1 = new BABYLON.DirectionalLight("DirectionalLight", new BABYLON.Vector3(0, -1, 0), scene);
+	        light1.diffuse = new BABYLON.Color3(2, 2, 2);
+	        light1.specular = new BABYLON.Color3(0, 5, 0);
+        
+            //Adding an Arc Rotate Camera
+            var camera = new BABYLON.ArcRotateCamera("Camera", 0, 0.8, 100, BABYLON.Vector3.Zero(), scene);
+            camera.attachControl(canvas, false);
+
+
+            // The first parameter can be used to specify which mesh to import. Here we import all meshes
+            BABYLON.SceneLoader.ImportMesh("", "./scenes/", "novy_hradek_real.glb", scene, function (newMeshes) {
+            // Set the target of the camera to the first imported mesh
+                modelReal = newMeshes[15];
+                camera.target = modelReal;
+                modelReal.isVisible = false;
+            });
+
+            BABYLON.SceneLoader.ImportMesh("", "./scenes/", "novy_hradek_history.glb", scene, function (newMeshes) {
+            // Set the target of the camera to the first imported mesh
+                modelHistoryTeren = newMeshes[1];
+                modelHistoryHrad = newMeshes[2];
+                modelHistoryOtazniky = newMeshes[3];
+                camera.target = modelHistoryHrad;
+            });
+
+//GUI
+var myGUI = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+var panel = new BABYLON.GUI.StackPanel();
+panel.width = "300px";
+panel.isVertical = true;
+panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_HIGH;    
+myGUI.addControl(panel);
+
+var panelHeading = new BABYLON.GUI.StackPanel();
+panelHeading.width = "200px";
+panelHeading.height = "45px";
+panelHeading.isVertical = false;
+panelHeading.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+panelHeading.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;    
+panel.addControl(panelHeading);
+
+var heading = new BABYLON.GUI.TextBlock();
+heading.text = "Zobrazit/Skrýt";
+heading.width = "180px";
+heading.height = "40px"
+heading.paddingLeft = "10px";
+heading.paddingBottom = "15px";
+heading.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+heading.color = "white";
+panelHeading.addControl(heading); 
+
+var panelRoof = new BABYLON.GUI.StackPanel();
+panelRoof.width = "200px";
+panelRoof.height = "25px";
+panelRoof.isVertical = false;
+panelRoof.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+panelRoof.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;    
+panel.addControl(panelRoof);
+
+
+var checkboxRoof = new BABYLON.GUI.Checkbox();
+    checkboxRoof.width = "20px";
+    checkboxRoof.height = "20px";
+    checkboxRoof.isChecked = true;
+    checkboxRoof.color = "green";
+    checkboxRoof.onIsCheckedChangedObservable.add(function(value) {
+        if (value) {
+            checkboxRoof.color = "green";
+            modelHistoryTeren.isVisible = true;
+            modelHistoryHrad.isVisible = true;
+            modelHistoryOtazniky.isVisible = true;
+        }
+		else {
+			checkboxRoof.color = "red";
+            modelHistoryTeren.isVisible = false;
+            modelHistoryHrad.isVisible = false;
+            modelHistoryOtazniky.isVisible = false;
+		}
+    });
+    panelRoof.addControl(checkboxRoof);    
+
+    var textRoof = new BABYLON.GUI.TextBlock();
+    textRoof.text = "Historický model";
+    textRoof.width = "180px";
+    textRoof.paddingLeft = "10px";
+    textRoof.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    textRoof.color = "white";
+    panelRoof.addControl(textRoof); 
+	
+	var panelFront = new BABYLON.GUI.StackPanel();
+	panelFront.width = "200px";
+	panelFront.height = "25px";
+	panelFront.isVertical = false;
+    panelFront.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    panelFront.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;    
+    panel.addControl(panelFront);
+	
+	var checkboxFront = new BABYLON.GUI.Checkbox();
+    checkboxFront.width = "20px";
+    checkboxFront.height = "20px";
+    checkboxFront.isChecked = true;
+    checkboxFront.color = "green";
+    checkboxFront.onIsCheckedChangedObservable.add(function(value) {
+        if (value) {
+            checkboxFront.color = "green";
+			modelReal.isVisible = true;
+        }
+		else {
+			checkboxFront.color = "red";
+			modelReal.isVisible = false;
+		}
+    });
+    panelFront.addControl(checkboxFront);   
+ 
+
+    var textFront = new BABYLON.GUI.TextBlock();
+    textFront.text = "Současná podoba";
+    textFront.width = "180px";
+    textFront.paddingLeft = "10px";
+    textFront.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    textFront.color = "white";
+    panelFront.addControl(textFront);
+
+    var panelSlide = new BABYLON.GUI.StackPanel();
+    panelSlide.width = "220px";
+    panelSlide.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_CENTER;
+    panelSlide.verticalAlignment = BABYLON.GUI.Control.VERTICAL_CENTER;
+    panel.addControl(panelSlide);
+
+    var panelSlideText = new BABYLON.GUI.StackPanel();
+    panelSlideText.width = "200px";
+    panelSlideText.height = "25px";
+    panelSlideText.isVertical = false;
+    panelSlideText.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    panelSlideText.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;    
+    panelSlide.addControl(panelSlideText);
+
+    var textSlide = new BABYLON.GUI.TextBlock();
+    textSlide.text = "Řezy";
+    textSlide.width = "180px";
+    textSlide.paddingLeft = "10px";
+    textSlide.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    textSlide.color = "white";
+    panelSlideText.addControl(textSlide);
+
+    var slider = new BABYLON.GUI.Slider();
+    slider.minimum = -50;
+    slider.maximum = 50;
+    slider.value = 0;
+    slider.height = "20px";
+    slider.width = "200px";
+    slider.color = "green";
+    slider.onValueChangedObservable.add(function(value) {
+        scene.clipPlane4 = new BABYLON.Plane(0, 1, 0, value);
+    });
+    panelSlide.addControl(slider);   
+
+    slider = new BABYLON.GUI.Slider();
+    slider.minimum = -50;
+    slider.maximum = 50;
+    slider.value = 0;
+    slider.paddingTop = "10px";
+    slider.height = "30px";
+    slider.width = "200px";
+    slider.color = "green";
+    slider.onValueChangedObservable.add(function(value) {
+        scene.clipPlane3 = new BABYLON.Plane(1, 0, 0, value);
+    });
+    panelSlide.addControl(slider);   
+	
+
+        
+            // Move the light with the camera
+            scene.registerBeforeRender(function () {
+                light.position = camera.position;
+            });
+        
+            return scene;
+        }
+var engine;
+try {
+    engine = createDefaultEngine();
+} catch(e) {
+    console.log("the available createEngine function failed. Creating the default engine instead");
+    engine = createDefaultEngine();
+}
+        if (!engine) throw 'engine should not be null.';
+        scene = createScene();;
+        sceneToRender = scene
+
+        engine.runRenderLoop(function () {
+            if (sceneToRender) {
+                sceneToRender.render();
+            }
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
